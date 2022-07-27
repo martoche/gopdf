@@ -2071,4 +2071,8 @@ func (gp *GoPdf) IsCurrFontContainGlyph(r rune) (bool, error) {
 	return true, nil
 }
 
+func (gp *GoPdf) Raw(data []byte, transform [6]float64) {
+	gp.getContent().AppendStreamRaw(data, transform)
+}
+
 //tool for validate pdf https://www.pdf-online.com/osa/validate.aspx

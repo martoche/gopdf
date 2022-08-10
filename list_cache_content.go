@@ -1,6 +1,8 @@
 package gopdf
 
-import "io"
+import (
+	"io"
+)
 
 type listCacheContent struct {
 	caches []ICacheContent

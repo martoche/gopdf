@@ -422,9 +422,9 @@ func convertTTFUnit2PDFUnit(n int, upem int) int {
 	return ret
 }
 
-func (c *ContentObj) AppendStreamRaw(data []byte, transform [6]float64) {
+func (c *ContentObj) AppendStreamRaw(index int, transform [6]float64) {
 	var cache cacheContentRaw
-	cache.data = data
+	cache.index = index
 	cache.transform = transform
 	c.listCache.append(&cache)
 }

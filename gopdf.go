@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/zlib" // for constants
+	"crypto/md5"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -1757,6 +1758,7 @@ func (gp *GoPdf) init() {
 	gp.curr.CountOfL = 0
 	gp.curr.CountOfImg = 0                       //img
 	gp.curr.ImgCaches = make(map[int]ImageCache) //= *new([]ImageCache)
+	gp.curr.RawCache = make(map[string]int)
 	gp.curr.sMasksMap = NewSMaskMap()
 	gp.curr.extGStatesMap = NewExtGStatesMap()
 	gp.curr.transparencyMap = NewTransparencyMap()
@@ -2071,8 +2073,22 @@ func (gp *GoPdf) IsCurrFontContainGlyph(r rune) (bool, error) {
 	return true, nil
 }
 
-func (gp *GoPdf) Raw(data []byte, transform [6]float64) {
-	gp.getContent().AppendStreamRaw(data, transform)
+func (gp *GoPdf) Raw(data []byte, boundingBox [4]float64, transform [6]float64) {
+	hash := fmt.Sprintf("%x", md5.Sum(data))
+
+	index, found := gp.curr.RawCache[hash]
+	if !found {
+		// create an object for the stream and add it
+		index = gp.addObj(&RawObj{Data: data, BoundingBox: boundingBox, getRoot: func() *GoPdf { return gp }})
+
+		// add the index of the object to the page "/Resources" dictionary
+		procset := gp.pdfObjs[gp.indexOfProcSet].(*ProcSetObj)
+		procset.RelateXobjs = append(procset.RelateXobjs, RelateXobject{IndexOfObj: index})
+
+		gp.curr.RawCache[hash] = index
+	}
+
+	gp.getContent().AppendStreamRaw(index, transform)
 }
 
 //tool for validate pdf https://www.pdf-online.com/osa/validate.aspx

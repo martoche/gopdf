@@ -25,6 +25,7 @@ type Current struct {
 	CountOfImg int
 	//cache of image in pdf file
 	ImgCaches map[int]ImageCache
+	RawCache  map[string]int // md5 -> object id
 
 	//text color mode
 	txtColorMode string //color, gray

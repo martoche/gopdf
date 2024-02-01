@@ -1,6 +1,6 @@
 package gopdf
 
-//Current current state
+// Current current state
 type Current struct {
 	setXCount int //many times we go func SetX()
 	X         float64
@@ -15,6 +15,8 @@ type Current struct {
 	FontStyle     int // Regular|Bold|Italic|Underline
 	FontFontCount int
 	FontType      int // CURRENT_FONT_TYPE_IFONT or  CURRENT_FONT_TYPE_SUBSET
+
+	CharSpacing float64
 
 	FontISubset *SubsetFontObj // FontType == CURRENT_FONT_TYPE_SUBSET
 

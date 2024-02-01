@@ -12,11 +12,13 @@ const defaultCoefLineHeight = float64(1)
 const defaultCoefUnderlinePosition = float64(1)
 const defaultcoefUnderlineThickness = float64(1)
 
-//ContentTypeCell cell
+// ContentTypeCell cell
 const ContentTypeCell = 0
 
-//ContentTypeText text
+// ContentTypeText text
 const ContentTypeText = 1
+
+var ErrContentTypeNotFound = errors.New("contentType not found")
 
 type cacheContentText struct {
 	//---setup---
@@ -27,6 +29,7 @@ type cacheContentText struct {
 	fontCountIndex int //Curr.FontFontCount+1
 	fontSize       float64
 	fontStyle      int
+	charSpacing    float64
 	setXCount      int //จำนวนครั้งที่ใช้ setX
 	x, y           float64
 	fontSubset     *SubsetFontObj
@@ -53,6 +56,7 @@ func (c *cacheContentText) isSame(cache cacheContentText) bool {
 		c.fontCountIndex == cache.fontCountIndex &&
 		c.fontSize == cache.fontSize &&
 		c.fontStyle == cache.fontStyle &&
+		c.charSpacing == cache.charSpacing &&
 		c.setXCount == cache.setXCount &&
 		c.y == cache.y {
 		return true
@@ -99,7 +103,7 @@ func (c *cacheContentText) calY() (float64, error) {
 
 		return y, nil
 	}
-	return 0.0, errors.New("contentType not found")
+	return 0.0, ErrContentTypeNotFound
 }
 
 func (c *cacheContentText) calX() (float64, error) {
@@ -116,7 +120,7 @@ func (c *cacheContentText) calX() (float64, error) {
 		}
 		return x, nil
 	}
-	return 0.0, errors.New("contentType not found")
+	return 0.0, ErrContentTypeNotFound
 }
 
 // FormatFloatTrim converts a float64 into a string, like Sprintf("%.3f")
@@ -149,7 +153,7 @@ func (c *cacheContentText) write(w io.Writer, protection *PDFProtection) error {
 	}
 
 	fmt.Fprintf(w, "%0.2f %0.2f TD\n", x, y)
-	fmt.Fprintf(w, "/F%d %s Tf\n", c.fontCountIndex, FormatFloatTrim(c.fontSize))
+	fmt.Fprintf(w, "/F%d %s Tf %s Tc\n", c.fontCountIndex, FormatFloatTrim(c.fontSize), FormatFloatTrim(c.charSpacing))
 
 	if c.txtColorMode == "color" {
 		c.textColor.write(w, protection)
@@ -291,7 +295,7 @@ func (c *cacheContentText) underline(w io.Writer) error {
 
 func (c *cacheContentText) createContent() (float64, float64, error) {
 
-	cellWidthPdfUnit, cellHeightPdfUnit, textWidthPdfUnit, err := createContent(c.fontSubset, c.text, c.fontSize, c.rectangle)
+	cellWidthPdfUnit, cellHeightPdfUnit, textWidthPdfUnit, err := createContent(c.fontSubset, c.text, c.fontSize, c.charSpacing, c.rectangle)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -301,7 +305,7 @@ func (c *cacheContentText) createContent() (float64, float64, error) {
 	return cellWidthPdfUnit, cellHeightPdfUnit, nil
 }
 
-func createContent(f *SubsetFontObj, text string, fontSize float64, rectangle *Rect) (float64, float64, float64, error) {
+func createContent(f *SubsetFontObj, text string, fontSize float64, charSpacing float64, rectangle *Rect) (float64, float64, float64, error) {
 
 	unitsPerEm := int(f.ttfp.UnitsPerEm())
 	var leftRune rune
@@ -328,7 +332,11 @@ func createContent(f *SubsetFontObj, text string, fontSize float64, rectangle *R
 			return 0, 0, 0, err
 		}
 
-		sumWidth += int(width) + int(pairvalPdfUnit)
+		unitsPerPt := float64(unitsPerEm) / fontSize
+		spaceWidthInPt := unitsPerPt * charSpacing
+		spaceWidthPdfUnit := convertTTFUnit2PDFUnit(int(spaceWidthInPt), unitsPerEm)
+
+		sumWidth += int(width) + int(pairvalPdfUnit) + spaceWidthPdfUnit
 		leftRune = r
 		leftRuneIndex = glyphindex
 	}
@@ -369,18 +377,19 @@ func kern(f *SubsetFontObj, leftRune rune, rightRune rune, leftIndex uint, right
 	return pairVal
 }
 
-//CacheContent Export cacheContent
+// CacheContent Export cacheContent
 type CacheContent struct {
 	cacheContentText
 }
 
-//Setup setup all information for cacheContent
+// Setup setup all information for cacheContent
 func (c *CacheContent) Setup(rectangle *Rect,
 	textColor ICacheColorText,
 	grayFill float64,
 	fontCountIndex int, //Curr.FontFontCount+1
 	fontSize float64,
 	fontStyle int,
+	charSpacing float64,
 	setXCount int, //จำนวนครั้งที่ใช้ setX
 	x, y float64,
 	fontSubset *SubsetFontObj,
@@ -397,6 +406,7 @@ func (c *CacheContent) Setup(rectangle *Rect,
 		fontCountIndex: fontCountIndex,
 		fontSize:       fontSize,
 		fontStyle:      fontStyle,
+		charSpacing:    charSpacing,
 		setXCount:      setXCount,
 		x:              x,
 		y:              y,
@@ -407,7 +417,7 @@ func (c *CacheContent) Setup(rectangle *Rect,
 	}
 }
 
-//WriteTextToContent write text to content
+// WriteTextToContent write text to content
 func (c *CacheContent) WriteTextToContent(text string) {
 	c.cacheContentText.text += text
 }

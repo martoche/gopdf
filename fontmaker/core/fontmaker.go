@@ -6,27 +6,26 @@ import (
 	"compress/zlib"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 )
 
-//ErrFontLicenseDoesNotAllowEmbedding Font license does not allow embedding
+// ErrFontLicenseDoesNotAllowEmbedding Font license does not allow embedding
 var ErrFontLicenseDoesNotAllowEmbedding = errors.New("Font license does not allow embedding")
 
-//FontMaker font maker
+// FontMaker font maker
 type FontMaker struct {
 	results []string
 }
 
-//GetResults get result
+// GetResults get result
 func (f *FontMaker) GetResults() []string {
 	return f.results
 }
 
-//NewFontMaker new FontMaker
+// NewFontMaker new FontMaker
 func NewFontMaker() *FontMaker {
 	return new(FontMaker)
 }
@@ -65,7 +64,7 @@ func (f *FontMaker) MakeFont(fontpath string, mappath string, encode string, out
 	var buff bytes.Buffer
 	gzipwriter := zlib.NewWriter(&buff)
 
-	fontbytes, err := ioutil.ReadFile(fontpath)
+	fontbytes, err := os.ReadFile(fontpath)
 	if err != nil {
 		return err
 	}
@@ -75,7 +74,7 @@ func (f *FontMaker) MakeFont(fontpath string, mappath string, encode string, out
 		return err
 	}
 	gzipwriter.Close()
-	err = ioutil.WriteFile(outfolderpath+"/"+gzfilename, buff.Bytes(), 0644)
+	err = os.WriteFile(outfolderpath+"/"+gzfilename, buff.Bytes(), 0644)
 	if err != nil {
 		return err
 	}
@@ -202,7 +201,7 @@ func (f *FontMaker) MakeDefinitionFile(gofontname string, mappath string, export
 	str += "\treturn me.family\n"
 	str += "}\n"
 
-	err = ioutil.WriteFile(exportfile, []byte(str), 0666)
+	err = os.WriteFile(exportfile, []byte(str), 0666)
 	if err != nil {
 		return "", err
 	}
@@ -375,7 +374,7 @@ func (f *FontMaker) GetInfoFromTrueType(fontpath string, fontmaps []FontMap) (Tt
 
 	info := NewTtfInfo()
 
-	fileContent, err := ioutil.ReadFile(fontpath)
+	fileContent, err := os.ReadFile(fontpath)
 	if err != nil {
 		return nil, err
 	}
